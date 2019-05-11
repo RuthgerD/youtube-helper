@@ -1,6 +1,8 @@
 # youtube-dl-helper
 
-put ya vidya in songs.txt and open ya .bat or .sh file OWO
+download.sh & .bat uses youtube-dl to download the videos specified in song.txt (downloads each newline)
 
-supports ytsearch1: and all other shananigans btw 
 
+main.py tries to extract title and artist info from the filename and applies it with kid3-clu
+you can pass it a directory or else it will use the current directory
+needs kid3-cli systemwide so it prob doesnt support windows .exe atm hihi
