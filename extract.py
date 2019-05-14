@@ -21,7 +21,7 @@ for name in glob.glob('*.mp3'):
     songs.append(name.replace(".mp3", ""))
 print(songs)
 
-retardwords = ["\[.*\] -", "Dubstep- ", "-- Lyrics [CC]", ", Inc"]
+retardwords = ["\[.*\] -", "Dubstep- ", "-- Lyrics [CC]", ", Inc", " - Diversity Release"]
 defaultsingle = [" & ", ", ", " ft. "]
 defaultdual = [", ", " ft. "]
 commadual = [" & ", " ft. "]
@@ -43,7 +43,7 @@ for song in songs:
     song = song.replace("】", ")")
     song = song.replace("[", "(")
     song = song.replace("]", ")")
-    
+
     #try:
     for i in range(song.count('(')):
         delete = re.search("\(.*?\)", song).group()
@@ -68,8 +68,14 @@ for song in songs:
         elif not any(x in before for x in defaulttrio):
                 state = 4
         if state == 1:
-            title = re.search("(?<= - ).*", song).group()
-            artists.append(re.search(".*(?= - )", song).group())
+                title = re.search("(?<= - ).*", song).group()
+                artists.append(re.search(".*(?= - )", song).group())
+                title = re.search("(?<= - ).*", song).group()
+                title_search = re.findall("(?:(?<= x )|^)(.*?)(?:(?= x )|(?= - ))", before, re.IGNORECASE)
+                #artists.append("NIGGGAAAA")
+                #input("AAAAAAAAAAAAAAAAAAAAAAA")
+                print(title_search)
+
 
         if state == 2:
             title = re.search("(?<= - ).*", song).group()
