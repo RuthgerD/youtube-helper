@@ -52,6 +52,7 @@ def reconstruct(file, workdir):
                 if not os.path.exists(line.replace("~~", "")):
                     os.makedirs(line.replace("~~", ""))
                     print("New Directory Created")
+                else:
                     os.chdir(line.replace("~~", ""))
 
 
