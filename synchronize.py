@@ -5,29 +5,48 @@ import glob
 import subprocess
 import sys
 import platform
+from extract import cleanTitle
 
-def download(URL, destination = os.getcwd()):
-    destination = os.path.join(destination, "%(title)s.%(ext)s")
 
+def download(URL, destination = os.getcwd(), title = "%(title)s"):
     if platform.system() == "Windows":
         youtubedl = "youtube-dl.exe"
     elif platform.system() == "Linux":
         youtubedl = "youtube-dl"
-    command = youtubedl + " \"" + URL + "\" --rm-cache-dir --extract-audio --audio-format mp3 --add-metadata --audio-quality 4 --embed-thumbnail -o \""+ destination +"\""
+    destination = os.path.join(destination, title + ".%(ext)s")
+
+    # Noteworthy: defaults to youtubesearch, spits out mp3 with audio quality 4 and embeds thumbnail
+    command = youtubedl + " \"" + URL + "\" --default-search \"ytsearch\" --rm-cache-dir --extract-audio --audio-format mp3 --add-metadata --audio-quality 4 --embed-thumbnail -o \""+ destination +"\""
+    print("\n-----")
     subprocess.run(command,  shell=True)
-    print("  Finished")
+    print("-----\n")
 
-def getTitle(URL):
-    command = "youtube-dl \"" + URL + "\" --quiet --skip-download --get-title"
-    title = subprocess.check_output(command,  shell=True)
-    title = re.search("(?<=\').*(?=\')", str(title).replace("\\n", "")).group()
-    return title
+def getData(URL):
+    # Get title and id without downloading anything
+    command = "youtube-dl \"" + URL + "\" --skip-download --get-title --get-id"
+    rawdata = subprocess.check_output(command,  shell=True)
+    # Replace \n with ~~~ to not mess with the regex
+    rawdata = re.search("(?<=\').*(?=\')", str(rawdata).replace("\\n", "~~~")).group()
+    # Splot title and id
+    data = []
+    data.append(re.search("^.*?(?=~~~)", rawdata).group())
+    data.append("https://www.youtube.com/watch?v="+re.search("(?<=~~~).*?(?=~~~$)", rawdata).group())
+    return data
 
-def reconstruct(file, workdir):
-    print(platform.system() + " | Download Mode")
+def reconstruct(file, workdir, ADownload):
+    # Check if we have song.txt
+    if not os.path.isfile(os.path.join(workdir, file)):
+        input("song.txt not found,\nPress enter to close")
+        return
+    if not ADownload:
+        print(platform.system() + " | Direct Download Mode")
+    else:
+        print(platform.system() + " | Album Download Mode")
 
+    # Extract all individual lines from song.txt
     with open(os.path.join(workdir, file), 'r') as f:
         content = [line.strip() for line in f]
+
 
     files = []
     for line in content:
@@ -56,31 +75,59 @@ def reconstruct(file, workdir):
                 else:
                     os.chdir(line.replace("~~", ""))
 
-
-            print("\nOutput Folder: " + line.replace("~~", ""))
+            if line == "~~":
+                print("\nOutput Folder: " + os.getcwd())
+            else:
+                print("\nOutput Folder: " + line.replace("~~", ""))
 
             files = []
             for name in glob.glob('*.mp3'):
                 files.append(name.replace(".mp3", ""))
         else:
-            song = line
+            command = ""
+            link = ""
+            title = ""
+            # --download-album will check if the file is already there so playlists are illegal :)
             if re.search("(youtube.com|youtu.be)", line):
-                print("  ID: " + re.search("((?<=watch\?v\=)|(?<=youtu\.be\/)).*", line).group() + "\n  Grabbing title..")
-                song = getTitle(line)
-            print("  " + song)
+                line = re.sub("&f.*", "", line)
+                line = re.sub("\?t=.*", "", line)
+                id = re.search("((?<=watch\?v\=)|(?<=youtu\.be\/)).*", line).group()
+                command = line
+                data = getData(id)
+                title = data[0]
+                link = data[1]
+            elif re.search("(ytsearch:|scsearch:)", line):
+                command = line
+                data = getData(line)
+                title = data[0]
+                link = data[1]
+                if re.search("scsearch:", command):
+                    link = link.replace("https://www.youtube.com/watch?v=", "https://w.soundcloud.com/player/?url=https://api.soundcloud.com/tracks/")
+            else:
+                command = line
+                data = getData("ytsearch:" + line)
+                title = data[0]
+                link = data[1]
+            title = title.replace("/", "_").replace("\\", "_")
+            print("  Command: " + command)
+            print("  Title: " + title)
+            print("  Direct: " + link)
             local = False
             for file in files:
-                test = str(re.sub("([-[\]{}()*+?.,\\^$|#\s])", r"\\\1",song))
-                if re.search(test, file, re.IGNORECASE):
+                test = cleanTitle(title)
+                file = cleanTitle(file)
+                test = str(re.sub("([- [\]{}()*+?.,\\^$|#\s])", "",test))
+                file = str(re.sub("([- [\]{}()*+?.,\\^$|#\s])", "",file))
+                if re.search(test, file, re.IGNORECASE) and ADownload:
                     local = True
             if local:
                 print("  Song Already Local.")
             else:
-                print("  Song Not Found, Downloading.")
-                if re.search("(youtube.com|youtu.be)", line):
-                    download(line, os.getcwd())
-                else:
-                    download("ytsearch:" + song, os.getcwd())
+                print("  Downloading..")
+                download(command, os.getcwd(), title)
+
+
+        print()
 
 def construct(workdir):
     print("Update Mode")
@@ -108,19 +155,30 @@ def construct(workdir):
     outF.writelines(output)
     outF.close()
 
-directory = os.getcwd()
 
-mode = "download"
-if len(sys.argv) >= 2:
-    if sys.argv[1] == "update":
+def main():
+    directory = os.getcwd()
+
+    mode = ""
+    if len(sys.argv) >= 2:
         mode = sys.argv[1]
-if len(sys.argv) == 3:
-    directory = sys.argv[2]
-    os.chdir(directory)
+    if len(sys.argv) == 3:
+        directory = sys.argv[2]
+        os.chdir(directory)
 
 
-if mode == "download":
-    reconstruct('songs.txt', directory)
 
-elif mode == "update":
-    construct(directory)
+
+    if mode == "--download":
+        reconstruct('songs.txt', directory, False)
+
+    elif mode == "--update":
+        construct(directory)
+
+    elif mode == "--download-album":
+        reconstruct('songs.txt', directory, True)
+    else:
+        return
+
+if __name__== "__main__":
+    main()
