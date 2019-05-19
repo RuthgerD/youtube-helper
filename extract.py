@@ -6,6 +6,14 @@ import subprocess
 import sys
 import platform
 
+def downloadThumb(song):
+    if platform.system() == "Windows":
+        kid3 = "kid3-cli.exe"
+        youtubedl = "youtube-dl.exe"
+    elif platform.system() == "Linux":
+        kid3 = "kid3-cli"
+        youtubedl = "youtube-dl"
+
 
 def cleanTitle(title):
     retardwords = ["\[.*\] -", "Dubstep- ", "-- Lyrics [CC]", ", Inc", " - Diversity Release"]
@@ -68,6 +76,7 @@ def main():
         artists = []
 
         song = cleanTitle(song)
+        downloadThumb(song)
         print("CLEANED: " + song)
         if " - " in song:
             before = re.search(".*-", song).group()
