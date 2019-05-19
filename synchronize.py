@@ -22,8 +22,12 @@ def download(URL, destination = os.getcwd(), title = "%(title)s"):
     print("-----\n")
 
 def getData(URL):
+    if platform.system() == "Windows":
+        youtubedl = "youtube-dl.exe"
+    elif platform.system() == "Linux":
+        youtubedl = "youtube-dl"
     # Get title and id without downloading anything
-    command = "youtube-dl \"" + URL + "\" --skip-download --get-title --get-id"
+    command = youtubedl + " \"" + URL + "\" --skip-download --get-title --get-id"
     rawdata = subprocess.check_output(command,  shell=True)
     # Replace \n with ~~~ to not mess with the regex
     rawdata = re.search("(?<=\').*(?=\')", str(rawdata).replace("\\n", "~~~")).group()
