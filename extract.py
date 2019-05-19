@@ -63,6 +63,11 @@ def main():
     if len(sys.argv) > 2:
         if os.path.exists(sys.argv[2]):
             directory = sys.argv[2]
+    if doThumb:
+        print(platform.system() + " | Title Extract + Thumbnail Download")
+    else:
+        print(platform.system() + " | Title Extract")
+
 
     os.chdir(directory)
 
