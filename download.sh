@@ -1,1 +1,0 @@
-python synchronize.py --download
