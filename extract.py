@@ -14,13 +14,13 @@ def downloadThumb(song, path):
         kid3 = "kid3-cli"
         youtubedl = "youtube-dl"
 
-    command = youtubedl + " \"" + URL + "\" --skip-download --get-title --get-id"
-    subprocess.run(command,  shell=True)
-    command = kid3 + " \"" + URL + "\" --skip-download --get-title --get-id"
-    command = kid3 + " -c \"select '" + path + "'\" -c \"set picture:'" + imagepath + "' '1'\""
+    imagepath = path.replace(".mp3", ".jpg")
 
-
-
+    command = youtubedl + " \"" + song + "\" --quiet --skip-download --write-thumbnail --default-search \"ytsearch\" --rm-cache-dir -o \"" + imagepath + "\""
+    discard = subprocess.check_output(command,  shell=True)
+    command = kid3 + " -c \"select '" + path + "'\" -c \"set picture:'" + os.path.abspath(imagepath) + "' '1'\""
+    discard = subprocess.check_output(command,  shell=True)
+    os.remove(imagepath)
 
 def cleanTitle(title):
     retardwords = ["\[.*\] -", "Dubstep- ", "-- Lyrics [CC]", ", Inc", " - Diversity Release"]
@@ -54,88 +54,98 @@ def cleanTitle(title):
 
 def main():
     directory = os.getcwd()
-    print(len(sys.argv))
+    doThumb = False
     if len(sys.argv) > 1:
-        if os.path.exists(sys.argv[1]):
+        if sys.argv[1] == "--download-thumbnail":
+            doThumb = True
+        elif os.path.exists(sys.argv[1]):
             directory = sys.argv[1]
-    else:
-        print("No directory given using current one")
+    if len(sys.argv) > 2:
+        if os.path.exists(sys.argv[2]):
+            directory = sys.argv[2]
 
     os.chdir(directory)
-    files = []
-    songs = []
-    print(os.getcwd())
-    for name in glob.glob('*.mp3'):
-        files.append(os.path.abspath(name))
-        songs.append(name.replace(".mp3", ""))
-    print(songs)
 
-    defaultsingle = [" & ", ", ", " ft. "]
-    defaultdual = [", ", " ft. "]
-    commadual = [" & ", " ft. "]
-    defaulttrio = [" ft. "]
+    folders = [""] + next(os.walk('.'))[1]
 
-    songcount = 0
-    for song in songs:
-        print("\n----------\n"+song)
-        state = 0
-        title = ""
-        artists = []
+    for folder in folders:
+        os.chdir(os.path.join(directory, folder))
+        print("\nWorking Folder: " + os.path.basename(directory) +"\n")
+        print("-----")
 
-        song = cleanTitle(song)
-        #downloadThumb(song)
-        print("CLEANED: " + song)
-        if " - " in song:
-            before = re.search(".*-", song).group()
-            #after = re.search("(?<=-)".*", song).group()
-            if not any(x in before for x in defaultsingle):
-                state = 1
-            elif not any(x in before for x in defaultdual):
-                    state = 2
-            elif not any(x in before for x in commadual):
-                    state = 3
-            elif not any(x in before for x in defaulttrio):
-                    state = 4
-            if state == 1:
+
+        files = []
+        songs = []
+        for name in glob.glob('*.mp3'):
+            files.append(os.path.abspath(name))
+            songs.append(name.replace(".mp3", ""))
+
+        defaultsingle = [" & ", ", ", " ft. "]
+        defaultdual = [", ", " ft. "]
+        commadual = [" & ", " ft. "]
+        defaulttrio = [" ft. "]
+
+        songcount = 0
+        for song in songs:
+            print("  Song: " + files[songcount])
+            state = 0
+            title = ""
+            artists = []
+            if doThumb:
+                print("  Downloading Thumbnail.")
+                downloadThumb(song.replace("'", "\\'"), files[songcount].replace("'", "\\'"))
+            print("  Cleaning Title.")
+            song = cleanTitle(song)
+            if " - " in song:
+                before = re.search(".*-", song).group()
+                #after = re.search("(?<=-)".*", song).group()
+                if not any(x in before for x in defaultsingle):
+                    state = 1
+                elif not any(x in before for x in defaultdual):
+                        state = 2
+                elif not any(x in before for x in commadual):
+                        state = 3
+                elif not any(x in before for x in defaulttrio):
+                        state = 4
+                if state == 1:
+                        title = re.search("(?<= - ).*", song).group()
+                        artists.append(re.search(".*(?= - )", song).group())
+                        title = re.search("(?<= - ).*", song).group()
+                        title_search = re.findall("(?:(?<= x )|^)(.*?)(?:(?= x )|(?= - ))", before, re.IGNORECASE)
+                if state == 2:
                     title = re.search("(?<= - ).*", song).group()
-                    artists.append(re.search(".*(?= - )", song).group())
+                    artists.append(re.search(".*(?= & )", song).group())
+                    artists.append(re.search("(?<= & ).*(?= - )", song).group())
+                if state == 3:
                     title = re.search("(?<= - ).*", song).group()
-                    title_search = re.findall("(?:(?<= x )|^)(.*?)(?:(?= x )|(?= - ))", before, re.IGNORECASE)
-                    print(title_search)
-            if state == 2:
-                title = re.search("(?<= - ).*", song).group()
-                artists.append(re.search(".*(?= & )", song).group())
-                artists.append(re.search("(?<= & ).*(?= - )", song).group())
-            if state == 3:
-                title = re.search("(?<= - ).*", song).group()
-                artists.append(re.search(".*(?=, )", song).group())
-                artists.append(re.search("(?<=, ).*(?= - )", song).group())
-            if state == 4:
-                title = re.search("(?<= - ).*", song).group()
-                artists.append(re.search(".*(?=, )", song).group())
-                artists.append(re.search("(?<=, ).*(?= & )", song).group())
-                artists.append(re.search("(?<= & ).*(?= - )", song).group())
-        else:
-                title = song
-                artists.append("Nobody")
-        if "Remix" in files[songcount] or "remix" in files[songcount] or "REMIX" in files[songcount]:
-            title += " (Remix)"
-        print ("\ntitle: " + title + "\n"+ "artist: " + str(artists) + "\n")
-        print(files[songcount])
+                    artists.append(re.search(".*(?=, )", song).group())
+                    artists.append(re.search("(?<=, ).*(?= - )", song).group())
+                if state == 4:
+                    title = re.search("(?<= - ).*", song).group()
+                    artists.append(re.search(".*(?=, )", song).group())
+                    artists.append(re.search("(?<=, ).*(?= & )", song).group())
+                    artists.append(re.search("(?<= & ).*(?= - )", song).group())
+            else:
+                    title = song
+                    artists.append("Nobody")
+            if "Remix" in files[songcount] or "remix" in files[songcount] or "REMIX" in files[songcount]:
+                title += " (Remix)"
+            print ("\n  Results:\n    title: " + title + "\n    artist(s): " + str(artists) + "\n")
 
-        artistcommand = ""
-        j = 0
-        for artist in artists:
-            artistcommand += " -c \"set artist["+str(j)+"] '" + artists[j].replace("'", "\\'") + "'\""
-            j += 1
-        if platform.system() == "Windows":
-            kid3 = "kid3-cli.exe"
-        elif platform.system() == "Linux":
-            kid3 = "kid3-cli"
-        command = kid3 + " -c \"select '" + files[songcount].replace("'", "\\'") + "'\" -c \"set title '" + title.replace("'", "\\'") + "'\"" + artistcommand + " -c \"set 'track number' '" + str(songcount) + "'\""
-        print(command)
-        subprocess.run(command,  shell=True)
+            artistcommand = ""
+            j = 0
+            for artist in artists:
+                artistcommand += " -c \"set artist["+str(j)+"] '" + artists[j].replace("'", "\\'") + "'\""
+                j += 1
+            if platform.system() == "Windows":
+                kid3 = "kid3-cli.exe"
+            elif platform.system() == "Linux":
+                kid3 = "kid3-cli"
+            command = kid3 + " -c \"select '" + files[songcount].replace("'", "\\'") + "'\" -c \"set title '" + title.replace("'", "\\'") + "'\"" + artistcommand
+            discard = subprocess.check_output(command,  shell=True)
 
-        songcount += 1
+            songcount += 1
+            print("-----\n")
+
 if __name__== "__main__":
     main()

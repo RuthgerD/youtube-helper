@@ -38,19 +38,9 @@ def getData(URL):
     return data
 
 def reconstruct(file, workdir, ADownload):
-    # Check if we have song.txt
-    if not os.path.isfile(os.path.join(workdir, file)):
-        input("song.txt not found,\nPress enter to close")
-        return
-    if not ADownload:
-        print(platform.system() + " | Direct Download Mode")
-    else:
-        print(platform.system() + " | Album Download Mode")
-
     # Extract all individual lines from song.txt
     with open(os.path.join(workdir, file), 'r') as f:
         content = [line.strip() for line in f]
-
 
     files = []
     for line in content:
@@ -171,18 +161,24 @@ def main():
         os.chdir(directory)
 
 
-
-
-    if mode == "--download":
-        reconstruct('songs.txt', directory, False)
-
-    elif mode == "--update":
-        construct(directory)
-
-    elif mode == "--download-album":
-        reconstruct('songs.txt', directory, True)
-    else:
+    # Check if we have song.txt
+    if not os.path.isfile(os.path.join(directory, 'songs.txt')):
+        input("song.txt not found,\nPress enter to close")
         return
+    else:
+        if mode == "--download":
+            print(platform.system() + " | Direct Download Mode")
+            reconstruct('songs.txt', directory, False)
+
+        elif mode == "--update":
+            print(platform.system() + " | Album Update Mode")
+            construct(directory)
+
+        elif mode == "--download-album":
+            print(platform.system() + " | Album Download Mode")
+            reconstruct('songs.txt', directory, True)
+        else:
+            return
 
 if __name__== "__main__":
     main()
