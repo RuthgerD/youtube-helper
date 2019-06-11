@@ -3,7 +3,7 @@
 stuff you need for bare minimum:
 * youtubedl installed (and in PATH for windows)
 
-what you also want to use extract.py:
+what you also need to use extract.py:
 * kid3-cli installed (and in PATH for windows)
 
 synchronize.py:  
