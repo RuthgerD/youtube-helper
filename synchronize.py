@@ -87,7 +87,7 @@ def reconstruct(file, workdir, ADownload):
                 line = re.sub("\?t=.*", "", line)
                 id = re.search("((?<=watch\?v\=)|(?<=youtu\.be\/)).*", line).group()
                 command = line
-                data = getData(id)
+                data = getData(line)
                 title = data[0]
                 link = data[1]
             elif re.search("(ytsearch:|scsearch:)", line):
