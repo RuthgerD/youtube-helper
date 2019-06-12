@@ -21,13 +21,14 @@ def download(URL, destination = os.getcwd(), title = "%(title)s"):
     subprocess.run(command,  shell=True)
     print("-----\n")
 
+
 def getData(URL):
     if platform.system() == "Windows":
         youtubedl = "youtube-dl.exe"
     elif platform.system() == "Linux":
         youtubedl = "youtube-dl"
     # Get title and id without downloading anything
-    command = youtubedl + " \"" + URL + "\" --skip-download --get-title --get-id"
+    command = youtubedl + " \"" + URL + "\" --rm-cache-dir --skip-download --get-title --get-id"
     rawdata = subprocess.check_output(command,  shell=True)
     # Replace \n with ~~~ to not mess with the regex
     rawdata = re.search("(?<=\').*(?=\')", str(rawdata).replace("\\n", "~~~")).group()
@@ -80,45 +81,59 @@ def reconstruct(file, workdir, ADownload):
         else:
             command = ""
             link = ""
-            title = ""
-            # --download-album will check if the file is already there so playlists are illegal :)
-            if re.search("(youtube.com|youtu.be)", line):
-                line = re.sub("&f.*", "", line)
-                line = re.sub("\?t=.*", "", line)
-                id = re.search("((?<=watch\?v\=)|(?<=youtu\.be\/)).*", line).group()
-                command = line
-                data = getData(line)
-                title = data[0]
-                link = data[1]
-            elif re.search("(ytsearch:|scsearch:)", line):
-                command = line
-                data = getData(line)
-                title = data[0]
-                link = data[1]
-                if re.search("scsearch:", command):
-                    link = link.replace("https://www.youtube.com/watch?v=", "https://w.soundcloud.com/player/?url=https://api.soundcloud.com/tracks/")
-            else:
-                command = line
-                data = getData("ytsearch:" + line)
-                title = data[0]
-                link = data[1]
-            title = title.replace("/", "_").replace("\\", "_")
-            print("  Command: " + command)
-            print("  Title: " + title)
-            print("  Direct: " + link)
+            title = "%(title)s"
             local = False
-            for file in files:
-                test = cleanTitle(title)
-                file = cleanTitle(file)
-                test = str(re.sub("([- [\]{}()*+?.,\\^$|#\s])", "",test))
-                file = str(re.sub("([- [\]{}()*+?.,\\^$|#\s])", "",file))
-                if re.search(test, file, re.IGNORECASE) and ADownload:
-                    local = True
+
+            try:
+                # --download-album will check if the file is already there so playlists are illegal :)
+                if re.search("(youtube.com|youtu.be)", line):
+                    line = re.sub("&f.*", "", line)
+                    line = re.sub("\?t=.*", "", line)
+                    command = line
+                    data = getData(line)
+                    title = data[0]
+                    link = data[1]
+                elif re.search("(soundcloud.com)", line):
+                    line = re.sub("\#t=.*", "", line)
+                    command = line
+                    data = getData(line)
+                    title = data[0]
+                    link = data[1]
+                    link = link.replace("https://www.youtube.com/watch?v=", "https://w.soundcloud.com/player/?url=https://api.soundcloud.com/tracks/")
+
+                elif re.search("(ytsearch:|scsearch:)", line):
+                    command = line
+                    data = getData(line)
+                    title = data[0]
+                    link = data[1]
+                    if re.search("scsearch:", command):
+                        link = link.replace("https://www.youtube.com/watch?v=", "https://w.soundcloud.com/player/?url=https://api.soundcloud.com/tracks/")
+                else:
+                    command = line
+                    data = getData("ytsearch:" + line)
+                    title = data[0]
+                    link = data[1]
+                title = title.replace("/", "_").replace("\\", "_")
+                print("  Command: " + command)
+                print("  Title: " + title)
+                print("  Direct: " + link)
+                for file in files:
+                    test = cleanTitle(title)
+                    file = cleanTitle(file)
+                    test = str(re.sub("([- [\]{}()*+?.,\\^$|#\s])", "",test))
+                    file = str(re.sub("([- [\]{}()*+?.,\\^$|#\s])", "",file))
+                    if re.search(test, file, re.IGNORECASE) and ADownload:
+                        local = True
+            except:
+                print("FUCKSIEWUCKSIE")
             if local:
                 print("  Song Already Local.")
             else:
                 print("  Downloading..")
-                download(command, os.getcwd(), title)
+                try:
+                    download(command, os.getcwd(), title)
+                except:
+                    print("Invalid URL, youtubedl cant download: " + command)
 
 
         print()
