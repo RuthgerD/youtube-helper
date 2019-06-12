@@ -31,11 +31,17 @@ def getData(URL):
     command = youtubedl + " \"" + URL + "\" --rm-cache-dir --skip-download --get-title --get-id"
     rawdata = subprocess.check_output(command,  shell=True)
     # Replace \n with ~~~ to not mess with the regex
-    rawdata = re.search("(?<=\').*(?=\')", str(rawdata).replace("\\n", "~~~")).group()
+    print(rawdata)
+    rawdata = re.search("((?<=\")|(?<=\')).*((?=\")|(?=\'))", str(rawdata)).group()
+    rawdata = rawdata.replace("\\n", "~~~")
+
+
+    print(rawdata)
+
     # Splot title and id
     data = []
     data.append(re.search("^.*?(?=~~~)", rawdata).group())
-    data.append("https://www.youtube.com/watch?v="+re.search("(?<=~~~).*?(?=~~~$)", rawdata).group())
+    data.append("https://www.youtube.com/watch?v="+re.search("(?<=~~~).*?(?=~~~)", rawdata).group())
     return data
 
 def reconstruct(file, workdir, ADownload):
@@ -79,12 +85,12 @@ def reconstruct(file, workdir, ADownload):
             for name in glob.glob('*.mp3'):
                 files.append(name.replace(".mp3", ""))
         else:
-            command = ""
-            link = ""
-            title = "%(title)s"
-            local = False
+            if ADownload:
+                command = ""
+                link = ""
+                title = "%(title)s"
+                local = False
 
-            try:
                 # --download-album will check if the file is already there so playlists are illegal :)
                 if re.search("(youtube.com|youtu.be)", line):
                     line = re.sub("&f.*", "", line)
@@ -124,16 +130,16 @@ def reconstruct(file, workdir, ADownload):
                     file = str(re.sub("([- [\]{}()*+?.,\\^$|#\s])", "",file))
                     if re.search(test, file, re.IGNORECASE) and ADownload:
                         local = True
-            except:
-                print("FUCKSIEWUCKSIE")
-            if local:
-                print("  Song Already Local.")
-            else:
-                print("  Downloading..")
-                try:
+                if local:
+                    print("  Song Already Local.")
+                else:
+                    print("  Downloading..")
                     download(command, os.getcwd(), title)
-                except:
-                    print("Invalid URL, youtubedl cant download: " + command)
+            else:
+                 print("Downloading..\n"+line)
+                 download(line, os.getcwd())
+
+
 
 
         print()
