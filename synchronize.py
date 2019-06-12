@@ -31,12 +31,9 @@ def getData(URL):
     command = youtubedl + " \"" + URL + "\" --rm-cache-dir --skip-download --get-title --get-id"
     rawdata = subprocess.check_output(command,  shell=True)
     # Replace \n with ~~~ to not mess with the regex
-    print(rawdata)
+
     rawdata = re.search("((?<=\")|(?<=\')).*((?=\")|(?=\'))", str(rawdata)).group()
     rawdata = rawdata.replace("\\n", "~~~")
-
-
-    print(rawdata)
 
     # Splot title and id
     data = []
